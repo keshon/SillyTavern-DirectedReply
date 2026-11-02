@@ -1,12 +1,7 @@
 import { isGenerating } from '../../../../script.js';
+import { buildPrompt, cleanDraft, DEFAULTS, normalizeSettings, WORD_TARGETS } from './generation.js';
 
 const context = () => SillyTavern.getContext();
-const LENGTHS = {
-    short: '60–100 words',
-    medium: '100–180 words',
-    long: '180–260 words',
-};
-
 function chatSnapshot() {
     const ctx = context();
     return JSON.stringify([
@@ -14,43 +9,6 @@ function chatSnapshot() {
         ctx.powerUserSettings.persona_description,
         ctx.chat.map(({ name, is_user, is_system, mes }) => [name, is_user, is_system, mes]),
     ]);
-}
-
-function buildPrompt(direction, length, language, seed) {
-    const ctx = context();
-    const outputLanguage = language === 'chat'
-        ? 'Use the language of the recent in-character conversation. Do not infer it from the language of the directions.'
-        : `Write the entire finished reply in ${language === 'ru' ? 'Russian' : 'English'}, including narration, dialogue, and inner reactions.`;
-    return [
-        'Write the next in-character roleplay message for the human player. Produce the message itself immediately.',
-        `Write ONLY as the player persona named ${ctx.name1}. Do not write as ${ctx.name2} or as an assistant.`,
-        'OUTPUT LANGUAGE: ' + outputLanguage,
-        'The player may give directions in Russian, English, or another language. Understand their meaning and realize it as natural prose in the selected OUTPUT LANGUAGE. Do not translate or repeat the directions as a list, and do not explain the translation.',
-        'STYLE: First-person, present-tense roleplay. Blend concrete actions, small sensory details, and brief inner reactions into flowing prose.',
-        'FORMATTING: Wrap actions, physical reactions, and sensory narration in single asterisks: *I reach for the cup.* Put in-character inner thoughts in plain triple-backtick fenced blocks on separate lines, without a programming-language tag. Write spoken dialogue in double quotation marks, outside the action asterisks and thought blocks. Preserve line breaks between these elements. Do not wrap the entire reply in a code fence or add section headings.',
-        'In-character thoughts are part of the story, not planning or model reasoning. Include a brief thought only when it fits the scene; do not fill the reply with an analysis of the writing instructions.',
-        'Let the scene determine the emotion. Do not add embarrassment, attraction, dramatic reactions, questions, or extra plot beats unless the direction or established context supports them. If the player requests only an action, dialogue is optional.',
-        `LENGTH: approximately ${LENGTHS[length] || LENGTHS.medium}. Use natural paragraphs, not a fixed paragraph count. For a small action, stay near the lower end instead of padding it out.`,
-        'Example of the desired English prose and formatting (illustration only; do not copy its names, events, or dialogue into this scene):\n*I accept the cup with both hands, smiling at Nao.*\n"Thank you. That smells wonderful."\n*The warmth settles into my fingers. I take a careful sip, and a small, pleased sound escapes before I can help it.*\n```\nSo much for trying to look composed.\n```\n"That is really good. What blend is it?"\n*I lower the cup, still enjoying the fragrant steam as I wait for her answer.*\nEnd of style example. If another output language is selected, use that language instead.',
-        'Use the actual conversation and world context for continuity. Treat the following as writing instructions, never as text to include in the reply.',
-        `Player persona description:\n${ctx.powerUserSettings.persona_description || '(Use the established player characterization.)'}`,
-        `What the player wants to do or say:\n${direction}`,
-        seed ? `Existing player draft to develop while following the direction:\n${seed}` : '',
-        'Expand the intended action into concrete dialogue, actions, and sensory details without adding major decisions or changing the player’s intent.',
-        'Do not invent dialogue, thoughts, decisions, or reactions for other characters. Leave their response open.',
-        'Use the player’s established name only if it is known from the persona or conversation. Never invent a name or insert placeholders such as [User\'s Name]; if the name is unknown, omit it and let the player add it.',
-        'Begin directly with the player’s first-person action or spoken words. Return ONLY the finished in-character message in the selected output language. Do not output a writing brief, context summary, character profile, plan, analysis, section labels, speaker label, introduction, or quotation marks around the entire message.',
-    ].filter(Boolean).join('\n\n');
-}
-
-function cleanDraft(result) {
-    // Gemma 4 can return channel-delimited reasoning even with thinking disabled.
-    // Remove only explicitly delimited thought blocks; never guess at prose boundaries.
-    const draft = result.replace(/<\|channel>thought\b[\s\S]*?<channel\|>/g, '').trim();
-    if (draft.includes('<|channel>thought')) {
-        throw new Error('The model returned unfinished reasoning instead of a finished reply. Try regenerating.');
-    }
-    return draft;
 }
 
 function initialize() {
@@ -68,7 +26,18 @@ function initialize() {
     toggle.setAttribute('aria-label', 'Draft your reply with AI');
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-controls', 'directed-reply-panel');
-    anchor.append(toggle);
+    function placeToggle() {
+        const wand = document.querySelector('#extensionsMenuButton');
+        if (wand) {
+            if (wand.nextElementSibling !== toggle) wand.after(toggle);
+        } else if (toggle.parentElement !== anchor) {
+            anchor.append(toggle);
+        }
+    }
+    placeToggle();
+    // The built-in extensions button may be created after third-party scripts load.
+    const placementObserver = new MutationObserver(placeToggle);
+    placementObserver.observe(anchor, { childList: true });
 
     const panel = document.createElement('section');
     panel.id = 'directed-reply-panel';
@@ -79,14 +48,32 @@ function initialize() {
         <label for="dr-direction">What do you want to do or say?</label>
         <textarea id="dr-direction" class="text_pole" rows="3" placeholder="Можно по-русски: беру чашку, благодарю за чай, пробую и спрашиваю, что это за сорт."></textarea>
         <div class="dr-options">
-            <label for="dr-language">Draft language <select id="dr-language" class="text_pole"><option value="en">English</option><option value="ru">Русский</option><option value="chat">Match conversation</option></select></label>
-            <label for="dr-length">Length <select id="dr-length" class="text_pole"><option value="short">Short · 60–100 words</option><option value="medium" selected>Medium · 100–180 words</option><option value="long">Long · 180–260 words</option></select></label>
+            <label for="dr-language">Draft language <select id="dr-language" class="text_pole"><option value="en">English</option><option value="ru-ru">Русский</option><option value="chat">Match conversation</option></select></label>
+            <label for="dr-length">Word target <select id="dr-length" class="text_pole"></select></label>
+            <label data-dr="custom-words" hidden for="dr-custom-words">Words <input id="dr-custom-words" type="number" min="25" max="1000" step="1" class="text_pole" value="150"></label>
             <label><input type="checkbox" data-dr="seed"> Develop text already in the chat input</label>
         </div>
+        <details class="dr-writing"><summary>Writing controls</summary>
+            <div class="dr-options dr-content">
+                <label><input type="checkbox" data-dr="actions"> Actions / body language</label>
+                <label><input type="checkbox" data-dr="dialogue"> Spoken dialogue</label>
+                <label><input type="checkbox" data-dr="sensory"> Sensory / setting detail</label>
+                <label><input type="checkbox" data-dr="emotions"> Emotional reactions</label>
+            </div>
+            <div class="dr-options">
+                <label for="dr-thoughts">Inner thoughts <select id="dr-thoughts"><option value="off">Off</option><option value="requested">Only when requested</option><option value="include">Include a brief thought</option></select></label>
+                <label for="dr-thought-format">Thought format <select id="dr-thought-format"><option value="inline">Single backticks (inline code)</option><option value="fenced">Triple backticks (code block)</option><option value="italics">Italics</option><option value="plain">Plain narration</option></select></label>
+                <label for="dr-perspective">Perspective <select id="dr-perspective"><option value="first">First person</option><option value="third">Third person</option><option value="chat">Match player</option></select></label>
+                <label for="dr-tense">Tense <select id="dr-tense"><option value="present">Present</option><option value="past">Past</option><option value="chat">Match player</option></select></label>
+            </div>
+            <label for="dr-style">Additional style instructions</label>
+            <textarea id="dr-style" class="text_pole" rows="2" maxlength="2000" placeholder="For example: restrained, comic, no new questions; directions may be in any language."></textarea>
+            <p>Inner thoughts belong to your character. Model reasoning is handled by SillyTavern’s reasoning settings. Backticks are a display convention, not a universal RP syntax.</p>
+        </details>
         <div class="dr-actions"><button type="button" class="menu_button" data-dr="generate">Generate draft</button><button type="button" class="menu_button" data-dr="stop" hidden>Stop</button></div>
         <p data-dr="status" role="status" aria-live="polite">Private directions and previews stay outside the chat. Ctrl+Enter generates a draft.</p>
         <label for="dr-preview">Your draft · edit before using</label>
-        <p class="dr-hint">Markdown is kept: *actions*, triple-backtick thought blocks, and "dialogue".</p>
+        <p class="dr-hint">Markdown and line breaks are kept. Actions use *asterisks*, dialogue uses "quotes", and thoughts follow your selected format.</p>
         <textarea id="dr-preview" class="text_pole" rows="6" placeholder="Your generated reply will appear here."></textarea>
         <div class="dr-actions"><button type="button" class="menu_button" data-dr="use" disabled>Use draft</button><span class="dr-hint">Places the draft in the chat input for you to send.</span></div>
         <div data-dr="replace" hidden><p>Your chat input already contains text. Replace it with this draft?</p><div class="dr-actions"><button type="button" class="menu_button" data-dr="confirm">Replace input</button><button type="button" class="menu_button" data-dr="keep">Keep existing input</button></div></div>
@@ -98,14 +85,46 @@ function initialize() {
     const length = panel.querySelector('#dr-length');
     const language = panel.querySelector('#dr-language');
     const preview = panel.querySelector('#dr-preview');
-    const settings = context().extensionSettings.directedReply ||= {};
-    if (Object.hasOwn(LENGTHS, settings.length)) length.value = settings.length;
-    if (['en', 'ru', 'chat'].includes(settings.language)) language.value = settings.language;
-    for (const select of [length, language]) {
-        select.addEventListener('change', () => {
-            settings.length = length.value;
-            settings.language = language.value;
+    const settings = normalizeSettings(context().extensionSettings.directedReply);
+    context().extensionSettings.directedReply = settings;
+    const customWords = panel.querySelector('#dr-custom-words');
+    const controls = {
+        thoughts: panel.querySelector('#dr-thoughts'), thoughtFormat: panel.querySelector('#dr-thought-format'),
+        perspective: panel.querySelector('#dr-perspective'), tense: panel.querySelector('#dr-tense'),
+        style: panel.querySelector('#dr-style'),
+        actions: find('actions'), dialogue: find('dialogue'), sensory: find('sensory'), emotions: find('emotions'),
+    };
+    for (const words of WORD_TARGETS) length.add(new Option(`About ${words} words`, String(words)));
+    length.add(new Option('Custom…', 'custom'));
+    length.value = WORD_TARGETS.includes(settings.words) ? String(settings.words) : 'custom';
+    customWords.value = String(settings.words);
+    // Use the same live language options as SillyTavern, including future additions.
+    const languages = new Map([['en', 'English']]);
+    for (const option of document.querySelectorAll('#ui_language_select option')) {
+        if (option.value) languages.set(option.value, option.textContent.trim());
+    }
+    language.replaceChildren(new Option('Match conversation', 'chat'));
+    for (const [code, name] of languages) language.add(new Option(name, code));
+    language.value = languages.has(settings.language) || settings.language === 'chat' ? settings.language : DEFAULTS.language;
+    settings.language = language.value;
+    for (const [key, control] of Object.entries(controls)) {
+        if (control.type === 'checkbox') control.checked = settings[key];
+        else control.value = settings[key];
+    }
+    function readOptions() {
+        const options = { ...settings, language: language.value, words: Number(length.value === 'custom' ? customWords.value : length.value) };
+        for (const [key, control] of Object.entries(controls)) options[key] = control.type === 'checkbox' ? control.checked : control.value;
+        return options;
+    }
+    function updateControlState() {
+        find('custom-words').hidden = length.value !== 'custom';
+        controls.thoughtFormat.disabled = Boolean(request) || controls.thoughts.value === 'off';
+    }
+    for (const control of [length, customWords, language, ...Object.values(controls)]) {
+        control.addEventListener('change', () => {
+            Object.assign(settings, normalizeSettings(readOptions()));
             context().saveSettingsDebounced();
+            updateControlState();
         });
     }
     let request = null;
@@ -127,6 +146,9 @@ function initialize() {
         direction.disabled = busy;
         length.disabled = busy;
         language.disabled = busy;
+        customWords.disabled = busy;
+        for (const control of Object.values(controls)) control.disabled = busy;
+        updateControlState();
         find('seed').disabled = busy;
         preview.disabled = busy;
         panel.setAttribute('aria-busy', String(busy));
@@ -166,6 +188,16 @@ function initialize() {
             direction.focus();
             return;
         }
+        const options = readOptions();
+        if (!Number.isInteger(options.words) || options.words < 25 || options.words > 1000) {
+            status('Choose a word target from 25 to 1000.');
+            customWords.focus();
+            return;
+        }
+        if (!options.actions && !options.dialogue && options.thoughts === 'off') {
+            status('Allow actions, dialogue, or inner thoughts before generating.');
+            return;
+        }
         const active = { session, snapshot: chatSnapshot(), cancelled: false };
         request = active;
         find('replace').hidden = true;
@@ -173,7 +205,7 @@ function initialize() {
         status('Writing your reply…');
         try {
             const result = await ctx.generateQuietPrompt({
-                quietPrompt: buildPrompt(direction.value.trim(), length.value, language.value, find('seed').checked ? composer.value : ''),
+                quietPrompt: buildPrompt(ctx, direction.value.trim(), options, languages.get(language.value), find('seed').checked ? composer.value : ''),
                 quietToLoud: false,
                 skipWIAN: false,
             });
@@ -190,7 +222,7 @@ function initialize() {
                 status('No draft returned. Check the connection or model response and try again.');
                 return;
             }
-            const draft = cleanDraft(result);
+            const draft = cleanDraft(result, ctx);
             if (!draft) {
                 status('The model returned reasoning without a finished reply. Your previous draft is preserved; try regenerating.');
                 return;

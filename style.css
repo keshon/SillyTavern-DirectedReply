@@ -48,6 +48,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
+    max-width: 100%;
 }
 
 #directed-reply-panel textarea {
@@ -59,6 +61,26 @@
 #directed-reply-panel select {
     width: auto;
     margin: 0 8px;
+    max-width: 100%;
+}
+
+#directed-reply-panel .dr-writing {
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    padding: 8px;
+    margin: 8px 0;
+}
+
+#directed-reply-panel summary {
+    cursor: pointer;
+}
+
+#directed-reply-panel .dr-content label {
+    margin-right: 12px;
+}
+
+#directed-reply-panel input[type="number"] {
+    width: 90px;
 }
 
 #directed-reply-panel p,

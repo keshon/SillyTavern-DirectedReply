@@ -12,6 +12,7 @@ after(async () => { await browser?.close(); });
 
 async function fixture(t, folder = 'directed-reply') {
     const page = await browser.newPage();
+    page.setDefaultTimeout(8000);
     t.after(() => page.close());
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -21,11 +22,12 @@ async function fixture(t, folder = 'directed-reply') {
         if (path === '/script.js') {
             return route.fulfill({ contentType: 'text/javascript', body: 'export const isGenerating = () => window.busy;' });
         }
-        if (path.endsWith('/index.js')) {
-            return route.fulfill({ contentType: 'text/javascript', body: readFileSync(resolve(__dirname, '../index.js'), 'utf8') });
+        if (path.endsWith('/index.js') || path.endsWith('/generation.js')) {
+            return route.fulfill({ contentType: 'text/javascript', body: readFileSync(resolve(__dirname, '..', path.split('/').pop()), 'utf8') });
         }
         return route.fulfill({ contentType: 'text/html', body: `
-            <div id="send_form"><div id="leftSendForm"></div><textarea id="send_textarea"></textarea></div>
+            <meta charset="utf-8">
+            <select id="ui_language_select" hidden><option value="">Default</option><option value="en">English</option><option value="ru-ru">Русский (Russian)</option><option value="fr-fr">Français (French)</option><option value="ja-jp">日本語 (Japanese)</option></select><div id="send_form"><div id="leftSendForm"><div id="extensionsMenuButton">Magic wand</div></div><textarea id="send_textarea"></textarea></div>
             <script>
                 window.$ = callback => callback();
                 window.busy = false;
@@ -34,7 +36,12 @@ async function fixture(t, folder = 'directed-reply') {
                 window.ctx = {
                     chatId: 'scene', characterId: 0, groupId: null,
                     name1: 'Player', name2: 'Character', onlineStatus: 'connected',
-                    powerUserSettings: { persona_description: 'Reserved detective' },
+                    powerUserSettings: { persona_description: 'Reserved detective', reasoning: {prefix: '<|channel>thought', suffix: '<channel|>'} },
+                    parseReasoningFromString: text => {
+                        const {prefix,suffix} = window.ctx.powerUserSettings.reasoning;
+                        const end = text.indexOf(suffix, prefix.length);
+                        return text.startsWith(prefix) && end >= 0 ? {content:text.slice(end+suffix.length),reasoning:text.slice(prefix.length,end)} : {content:text,reasoning:''};
+                    },
                     extensionSettings: {},
                     saveSettingsDebounced: () => { window.settingsSaved = true; },
                     chat: [{ name: 'Character', mes: 'Where were you?', is_user: false }],
@@ -204,8 +211,8 @@ test('Russian directions default to English prose with a word target', async t =
     const prompt = await page.evaluate(() => window.calls[0].quietPrompt);
     assert.match(prompt, /entire finished reply in English/);
     assert.match(prompt, /Беру чашку/);
-    assert.match(prompt, /100–180 words/);
-    assert.match(prompt, /First-person, present-tense/);
+    assert.match(prompt, /about 150 words/);
+    assert.match(prompt, /First person/);
     assert.doesNotMatch(prompt, /Match the language, perspective/);
     await page.evaluate(() => window.finish('I take the cup. "Thank you."'));
     await page.waitForFunction(() => !document.querySelector('[data-dr="generate"]').disabled);
@@ -214,17 +221,18 @@ test('Russian directions default to English prose with a word target', async t =
 
 test('output language and length are independently selectable and saved', async t => {
     const page = await fixture(t);
-    await page.locator('#dr-language').selectOption('ru');
-    await page.locator('#dr-length').selectOption('short');
+    await page.locator('#dr-language').selectOption('ru-ru');
+    await page.locator('#dr-length').selectOption('75');
     await generate(page, 'Я беру чашку.');
     const prompt = await page.evaluate(() => window.calls[0].quietPrompt);
-    assert.match(prompt, /entire finished reply in Russian/);
-    assert.match(prompt, /60–100 words/);
-    assert.deepEqual(await page.evaluate(() => window.ctx.extensionSettings.directedReply), { language: 'ru', length: 'short' });
+    assert.match(prompt, /entire finished reply in Русский \(Russian\)/);
+    assert.match(prompt, /about 75 words/);
+    assert.equal(await page.evaluate(() => window.ctx.extensionSettings.directedReply.language), 'ru-ru');
+    assert.equal(await page.evaluate(() => window.ctx.extensionSettings.directedReply.words), 75);
     assert.equal(await page.evaluate(() => window.settingsSaved), true);
     await page.locator('#dr-language').selectOption('chat');
     await page.locator('[data-dr="generate"]').click();
-    assert.match(await page.evaluate(() => window.calls[1].quietPrompt), /Do not infer it from the language of the directions/);
+    assert.match(await page.evaluate(() => window.calls[1].quietPrompt), /not the language of these directions/);
     await page.evaluate(() => window.finish('Another reply.'));
     await page.waitForFunction(() => !document.querySelector('[data-dr="generate"]').disabled);
 });
@@ -252,11 +260,14 @@ test('Gemma thought channels are removed while preserving the actual reply', asy
 
 test('Markdown survives reasoning cleanup, preview editing, and composer acceptance', async t => {
     const page = await fixture(t, 'SillyTavern-DirectedReply');
+    await page.locator('summary').click();
+    await page.locator('#dr-thoughts').selectOption('include');
+    await page.locator('#dr-thought-format').selectOption('fenced');
     const markdown = '*I rub my eyes, then offer a hesitant smile.*\n\n```\nAm I really safe here?\n```\n\n"Thank you for helping me."';
     await generate(page, '<|channel>thought\nFollow the requested format.\n<channel|>' + markdown);
     const prompt = await page.evaluate(() => window.calls[0].quietPrompt);
-    assert.match(prompt, /Wrap actions, physical reactions, and sensory narration in single asterisks/);
-    assert.match(prompt, /plain triple-backtick fenced blocks/);
+    assert.match(prompt, /Wrap action narration in single asterisks/);
+
     assert.doesNotMatch(prompt, /without asterisks/);
     assert.equal(await page.locator('#dr-preview').inputValue(), markdown);
     const edited = markdown.replace('hesitant smile', 'grateful smile');
@@ -264,4 +275,50 @@ test('Markdown survives reasoning cleanup, preview editing, and composer accepta
     await page.locator('[data-dr="use"]').click();
     assert.equal(await page.locator('#send_textarea').inputValue(), edited);
     assert.equal(await page.evaluate(() => window.ctx.chat.length), 1);
+});
+
+test('the draft icon stays immediately after the magic wand, including late creation', async t => {
+    const page = await fixture(t);
+    assert.equal(await page.locator('#extensionsMenuButton').evaluate(el => el.nextElementSibling.id), 'directed-reply-toggle');
+    await page.evaluate(() => {
+        document.querySelector('#extensionsMenuButton').remove();
+        const wand = document.createElement('div');
+        wand.id = 'extensionsMenuButton';
+        document.querySelector('#leftSendForm').append(wand);
+    });
+    await page.waitForFunction(() => document.querySelector('#extensionsMenuButton').nextElementSibling?.id === 'directed-reply-toggle');
+});
+
+test('language choices mirror the host and custom word counts reach the prompt', async t => {
+    const page = await fixture(t);
+    const host = await page.locator('#ui_language_select option').evaluateAll(options => options.map(x => x.value).filter(Boolean));
+    const own = await page.locator('#dr-language option').evaluateAll(options => options.map(x => x.value));
+    for (const language of host) assert.ok(own.includes(language));
+    await page.locator('#dr-language').selectOption('ja-jp');
+    await page.locator('#dr-length').selectOption('custom');
+    await page.locator('#dr-custom-words').fill('173');
+    await generate(page, 'A reply.');
+    const prompt = await page.evaluate(() => window.calls[0].quietPrompt);
+    assert.match(prompt, /日本語 \(Japanese\)/);
+    assert.match(prompt, /about 173 words/);
+    assert.equal(await page.evaluate(() => window.ctx.extensionSettings.directedReply.words), 173);
+});
+
+test('content controls reject empty output modes and keep thought format disabled when off', async t => {
+    const page = await fixture(t);
+    await page.locator('summary').click();
+    assert.equal(await page.locator('#dr-thought-format').isDisabled(), true);
+    await page.locator('[data-dr="actions"]').uncheck();
+    await page.locator('[data-dr="dialogue"]').uncheck();
+    await page.locator('#dr-direction').fill('Wait.');
+    await page.locator('[data-dr="generate"]').click();
+    assert.match(await page.locator('[data-dr="status"]').textContent(), /Allow actions/);
+    assert.equal(await page.evaluate(() => window.calls.length), 0);
+    await page.locator('#dr-thoughts').selectOption('include');
+    assert.equal(await page.locator('#dr-thought-format').isDisabled(), false);
+    await page.locator('[data-dr="generate"]').click();
+    assert.match(await page.evaluate(() => window.calls[0].quietPrompt), /Do not include spoken dialogue/);
+    assert.equal(await page.locator('#dr-thoughts').isDisabled(), true);
+    await page.evaluate(() => window.finish('`I should wait.`'));
+    await page.waitForFunction(() => !document.querySelector('[data-dr="generate"]').disabled);
 });
