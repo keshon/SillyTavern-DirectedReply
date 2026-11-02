@@ -284,9 +284,11 @@ test('the draft icon stays immediately after the magic wand, including late crea
         document.querySelector('#extensionsMenuButton').remove();
         const wand = document.createElement('div');
         wand.id = 'extensionsMenuButton';
+        wand.style.order = '4';
         document.querySelector('#leftSendForm').append(wand);
     });
     await page.waitForFunction(() => document.querySelector('#extensionsMenuButton').nextElementSibling?.id === 'directed-reply-toggle');
+    assert.equal(await page.locator('#directed-reply-toggle').evaluate(el => getComputedStyle(el).order), '4');
 });
 
 test('language choices mirror the host and custom word counts reach the prompt', async t => {

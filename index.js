@@ -29,6 +29,8 @@ function initialize() {
     function placeToggle() {
         const wand = document.querySelector('#extensionsMenuButton');
         if (wand) {
+            // Match the host's flex order; DOM adjacency alone can still render first.
+            toggle.style.order = getComputedStyle(wand).order;
             if (wand.nextElementSibling !== toggle) wand.after(toggle);
         } else if (toggle.parentElement !== anchor) {
             anchor.append(toggle);
