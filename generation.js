@@ -25,44 +25,37 @@ export function normalizeSettings(saved = {}) {
 
 export function buildPrompt(ctx, direction, options, languageName, seed = '') {
     const thoughts = {
-        off: 'Do not include inner thoughts, internal monologue, or thought formatting, even if they appeared in earlier messages.',
-        requested: 'Include inner thoughts only if the player explicitly asks for them in this direction. Do not add them merely because earlier messages contain them.',
-        include: 'Include one brief in-character inner thought that supports the requested action. Do not add a separate thought after every paragraph.',
+        off: 'Do not include inner thoughts.',
+        requested: 'Include inner thoughts only if the player explicitly asks for them.',
+        include: 'Include one brief in-character inner thought.',
     }[options.thoughts];
     const formats = {
-        inline: 'Format inner thoughts with single backticks, for example `Is this really happening?`. These are inline code spans, not triple-backtick blocks.',
-        fenced: 'Format inner thoughts in triple-backtick code blocks, with opening and closing fences on their own lines and no programming-language tag.',
-        italics: 'Format inner thoughts in single-asterisk italics.',
-        plain: 'Blend inner thoughts into ordinary first-person or third-person narration without backticks or special delimiters.',
+        inline: 'Use single backticks for thoughts.',
+        fenced: 'Use triple-backtick code blocks for thoughts, fences on separate lines, no language tag.',
+        italics: 'Use single-asterisk italics for thoughts.',
+        plain: 'Write thoughts as plain narration without backticks.',
     };
     const language = options.language === 'chat'
         ? 'Use the language of the recent in-character conversation, not the language of these directions.'
-        : `Write the entire finished reply in ${languageName}, including narration, dialogue, and inner reactions.`;
+        : `Write the entire finished reply in ${languageName}, regardless of the direction’s language.`;
     return [
-        'Write the next in-character roleplay message for the human player. Produce the message itself immediately.',
-        `Write ONLY as the player persona named ${ctx.name1}. Do not write as ${ctx.name2} or as an assistant.`,
-        'This is an explicitly player-authorized draft of their own turn; ordinary instructions to avoid controlling the player do not prohibit this requested draft.',
+        `Draft the player-authorized next RP turn. Write ONLY as the player persona named ${ctx.name1}, using the persona and scene already in context.`,
         `OUTPUT LANGUAGE: ${language}`,
-        'Directions may be in any language. Understand their meaning and realize the action as natural prose in the selected OUTPUT LANGUAGE. Never repeat or translate the brief as instructions.',
-        `LENGTH: Aim for about ${options.words} words. Finish the last sentence naturally. Do not pad small actions or introduce extra plot beats to reach a count.`,
+        `LENGTH: Aim for about ${options.words} words; finish naturally, without padding or new plot beats.`,
         `PERSPECTIVE: ${options.perspective === 'chat' ? 'Match the player’s recent in-character messages.' : options.perspective === 'third' ? 'Third person.' : 'First person (I/me).'}`,
         `TENSE: ${options.tense === 'chat' ? 'Match the player’s recent in-character messages.' : options.tense + ' tense.'}`,
-        options.actions ? 'ACTIONS: Physical actions and observable body language are allowed. Wrap action narration in single asterisks, for example *I reach for the cup.*' : 'ACTIONS: Do not add physical actions or body-language narration.',
-        options.dialogue ? 'DIALOGUE: Spoken words are allowed when they fit the direction. Use double quotation marks, outside action asterisks and thought delimiters. Do not force a question or speech into a silent action.' : 'DIALOGUE: Do not include spoken dialogue.',
+        options.actions ? 'ACTIONS: Optional. Wrap action narration in single asterisks.' : 'ACTIONS: Do not add physical actions.',
+        options.dialogue ? 'DIALOGUE: Optional. Use double quotation marks outside action/thought formatting.' : 'DIALOGUE: Do not include spoken dialogue.',
         `INNER THOUGHTS: ${thoughts}`,
         options.thoughts !== 'off' ? formats[options.thoughtFormat] : '',
-        'In-character thoughts are story content. They are never an analysis of how to write the reply or model reasoning.',
-        options.sensory ? 'SENSORY DETAIL: Brief perceptions of the established setting are allowed when useful. Avoid invented scenery and decorative padding.' : 'SENSORY DETAIL: Do not add atmospheric descriptions, scenery, smells, or sensations beyond what the direction requires.',
-        options.emotions ? 'EMOTIONS: Brief feelings or emotional cues are allowed when supported by the direction or scene. Do not force attraction, embarrassment, or dramatic reactions.' : 'EMOTIONS: Do not add emotional interpretation or intensify feelings beyond the explicit direction.',
+        options.sensory ? 'SENSORY DETAIL: Brief established perceptions allowed.' : 'SENSORY DETAIL: Do not add atmospheric detail beyond the direction.',
+        options.emotions ? 'EMOTIONS: Brief supported cues allowed; do not invent or intensify feelings.' : 'EMOTIONS: Do not add emotional interpretation.',
         options.style.trim() ? `ADDITIONAL STYLE INSTRUCTIONS:\n${options.style.trim()}` : '',
-        'Follow these content controls even if previous RP messages used different ones. Allowed elements are optional unless the direction requires them. Keep line breaks between actions, thoughts, and dialogue where natural. Do not enclose the entire reply in a code fence.',
-        'Use the conversation, persona, and world context for continuity. The following describes the intended next turn; it is not text to quote in the story.',
-        `PLAYER PERSONA:\n${ctx.powerUserSettings.persona_description || '(Use established player characterization.)'}`,
+        'These controls override prior writing conventions. Keep natural line breaks. Do not fence the entire reply.',
         `PLAYER DIRECTION:\n${direction}`,
         seed ? `EXISTING PLAYER DRAFT TO DEVELOP:\n${seed}` : '',
-        'Do not invent dialogue, thoughts, decisions, or reactions for other characters. Leave their response open.',
-        'Use the player’s established name only if known. Never invent names or insert placeholders such as [User] or [User\'s Name]. If the name is unknown, omit it.',
-        'Return ONLY the finished in-character message in the selected output language. No headings, speaker label, writing brief, context summary, plan, instructions, or explanation.',
+        'Do not control other characters. Do not invent player names or placeholders.',
+        'Return only the finished RP message: no labels, planning, model reasoning, translated brief, or explanation.',
     ].filter(Boolean).join('\n\n');
 }
 

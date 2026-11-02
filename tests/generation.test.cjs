@@ -64,3 +64,13 @@ test('empty control frames use the selected template without removing ordinary p
     assert.equal(cleanDraft('<|channel>actual text<channel|>*I smile.*', native), '<|channel>actual text<channel|>*I smile.*');
     assert.equal(cleanDraft('"<|channel><channel|>"', native), '"<|channel><channel|>"');
 });
+
+test('the instruction budget stays compact and persona data is not duplicated', async () => {
+    const { buildPrompt, normalizeSettings } = await modulePromise;
+    const options = normalizeSettings();
+    const prompt = buildPrompt(ctx, 'Smile and thank her.', options, 'English');
+    assert.ok(prompt.length < 1600, `Default brief grew to ${prompt.length} characters`);
+    const largePersona = { ...ctx, powerUserSettings: { persona_description: 'Private persona details. '.repeat(1000) } };
+    assert.equal(buildPrompt(largePersona, 'Smile and thank her.', options, 'English'), prompt);
+    for (let i = 0; i < 100; i++) assert.equal(buildPrompt(ctx, 'Smile and thank her.', options, 'English'), prompt);
+});

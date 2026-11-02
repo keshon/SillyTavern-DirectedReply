@@ -19,4 +19,6 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: node --check index.js
+      - run: node --check generation.js
+      - run: npm run audit:prompt
       - run: npm test

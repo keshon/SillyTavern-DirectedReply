@@ -76,7 +76,8 @@ test('private generation uses context, editable preview, and acceptance without 
     const options = await page.evaluate(() => window.calls[0]);
     assert.equal(options.quietToLoud, false);
     assert.equal(options.skipWIAN, false);
-    assert.match(options.quietPrompt, /Reserved detective/);
+    assert.match(options.quietPrompt, /persona and scene already in context/);
+    assert.doesNotMatch(options.quietPrompt, /Reserved detective/);
     assert.match(options.quietPrompt, /ONLY as the player persona named Player/);
     assert.equal(await page.locator('#send_textarea').inputValue(), '');
     await page.locator('#dr-preview').fill('My edited reply.');
@@ -323,4 +324,18 @@ test('content controls reject empty output modes and keep thought format disable
     assert.equal(await page.locator('#dr-thoughts').isDisabled(), true);
     await page.evaluate(() => window.finish('`I should wait.`'));
     await page.waitForFunction(() => !document.querySelector('[data-dr="generate"]').disabled);
+});
+
+test('repeated requests contain one current brief, no previous previews, and no extra chat messages', async t => {
+    const page = await fixture(t);
+    for (let i = 0; i < 8; i++) await generate(page, `PREVIEW_NOT_SENT_${i}`);
+    const calls = await page.evaluate(() => window.calls);
+    assert.equal(calls.length, 8);
+    for (const call of calls) {
+        assert.equal(call.quietPrompt, calls[0].quietPrompt);
+        assert.equal(call.quietPrompt.split('PLAYER DIRECTION:').length - 1, 1);
+        assert.doesNotMatch(call.quietPrompt, /PREVIEW_NOT_SENT/);
+    }
+    assert.equal(await page.evaluate(() => window.ctx.chat.length), 1);
+    assert.equal(await page.locator('#send_textarea').inputValue(), '');
 });
