@@ -53,3 +53,14 @@ test('reasoning cleanup follows any selected native template and preserves RP Ma
     }
     assert.equal(cleanDraft(reply, { powerUserSettings: {} }), reply);
 });
+
+test('empty control frames use the selected template without removing ordinary prose', async () => {
+    const { cleanDraft } = await modulePromise;
+    const native = {
+        powerUserSettings: { reasoning: { prefix: '<|channel>thought\n', suffix: '<channel|>' } },
+        parseReasoningFromString: text => ({ content: text }),
+    };
+    assert.equal(cleanDraft('<|channel><channel|>*I smile.*', native), '*I smile.*');
+    assert.equal(cleanDraft('<|channel>actual text<channel|>*I smile.*', native), '<|channel>actual text<channel|>*I smile.*');
+    assert.equal(cleanDraft('"<|channel><channel|>"', native), '"<|channel><channel|>"');
+});

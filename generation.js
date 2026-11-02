@@ -71,6 +71,13 @@ export function cleanDraft(result, ctx) {
     let draft = result.trim();
     // The selected SillyTavern reasoning template owns the model-specific syntax.
     if (template?.prefix && template?.suffix) {
+        // Some backends emit an empty control frame without its channel label.
+        // Derive its boundaries from the selected template, not a model-name table.
+        const openingToken = template.prefix.match(/^<[^>\r\n]+>/)?.[0];
+        if (openingToken && template.prefix !== openingToken && draft.startsWith(openingToken)) {
+            const remainder = draft.slice(openingToken.length).trimStart();
+            if (remainder.startsWith(template.suffix)) draft = remainder.slice(template.suffix.length).trimStart();
+        }
         const prefix = template.prefix.trimEnd();
         if (draft.startsWith(prefix) && !draft.includes(template.suffix, prefix.length)) {
             throw new Error('The model returned unfinished reasoning. Check its response budget and SillyTavern reasoning settings, then regenerate.');
