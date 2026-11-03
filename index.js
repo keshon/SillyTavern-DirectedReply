@@ -48,7 +48,7 @@ function initialize() {
     panel.innerHTML = `
         <div class="dr-heading"><strong>Draft your reply</strong><button type="button" class="menu_button" data-dr="close" aria-label="Close draft panel">✕</button></div>
         <label for="dr-direction">What do you want to do or say?</label>
-        <textarea id="dr-direction" class="text_pole" rows="3" placeholder="Можно по-русски: беру чашку, благодарю за чай, пробую и спрашиваю, что это за сорт."></textarea>
+        <textarea id="dr-direction" class="text_pole" rows="3" placeholder="Describe your next action, words, or tone—in any language." data-i18n="[placeholder]directedReply.directionHint"></textarea>
         <div class="dr-options">
             <label for="dr-language">Draft language <select id="dr-language" class="text_pole"><option value="en">English</option><option value="ru-ru">Русский</option><option value="chat">Match conversation</option></select></label>
             <label for="dr-length">Word target <select id="dr-length" class="text_pole"></select></label>
@@ -69,14 +69,14 @@ function initialize() {
                 <label for="dr-tense">Tense <select id="dr-tense"><option value="present">Present</option><option value="past">Past</option><option value="chat">Match player</option></select></label>
             </div>
             <label for="dr-style">Additional style instructions</label>
-            <textarea id="dr-style" class="text_pole" rows="2" maxlength="2000" placeholder="For example: restrained, comic, no new questions; directions may be in any language."></textarea>
+            <textarea id="dr-style" class="text_pole" rows="2" maxlength="2000" placeholder="Optional tone, style, or details to avoid." data-i18n="[placeholder]directedReply.styleHint"></textarea>
             <p>Inner thoughts belong to your character. Model reasoning is handled by SillyTavern’s reasoning settings. Backticks are a display convention, not a universal RP syntax.</p>
         </details>
         <div class="dr-actions"><button type="button" class="menu_button" data-dr="generate">Generate draft</button><button type="button" class="menu_button" data-dr="stop" hidden>Stop</button></div>
         <p data-dr="status" role="status" aria-live="polite">Private directions and previews stay outside the chat. Ctrl+Enter generates a draft.</p>
         <label for="dr-preview">Your draft · edit before using</label>
         <p class="dr-hint">Markdown and line breaks are kept. Actions use *asterisks*, dialogue uses "quotes", and thoughts follow your selected format.</p>
-        <textarea id="dr-preview" class="text_pole" rows="6" placeholder="Your generated reply will appear here."></textarea>
+        <textarea id="dr-preview" class="text_pole" rows="6" placeholder="Your draft will appear here. Edit it before using it." data-i18n="[placeholder]directedReply.previewHint"></textarea>
         <div class="dr-actions"><button type="button" class="menu_button" data-dr="use" disabled>Use draft</button><span class="dr-hint">Places the draft in the chat input for you to send.</span></div>
         <div data-dr="replace" hidden><p>Your chat input already contains text. Replace it with this draft?</p><div class="dr-actions"><button type="button" class="menu_button" data-dr="confirm">Replace input</button><button type="button" class="menu_button" data-dr="keep">Keep existing input</button></div></div>
     `;

@@ -339,3 +339,12 @@ test('repeated requests contain one current brief, no previous previews, and no 
     assert.equal(await page.evaluate(() => window.ctx.chat.length), 1);
     assert.equal(await page.locator('#send_textarea').inputValue(), '');
 });
+
+test('default hints are general English text with native translation attributes', async t => {
+    const page = await fixture(t);
+    assert.equal(await page.locator('#dr-direction').getAttribute('placeholder'), 'Describe your next action, words, or tone—in any language.');
+    assert.equal(await page.locator('#dr-direction').getAttribute('data-i18n'), '[placeholder]directedReply.directionHint');
+    assert.equal(await page.locator('#dr-style').getAttribute('data-i18n'), '[placeholder]directedReply.styleHint');
+    assert.equal(await page.locator('#dr-preview').getAttribute('data-i18n'), '[placeholder]directedReply.previewHint');
+    assert.equal(await page.locator('#dr-language').inputValue(), 'en');
+});

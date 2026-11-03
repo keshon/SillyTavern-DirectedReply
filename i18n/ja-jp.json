@@ -1,0 +1,5 @@
+{
+    "directedReply.directionHint": "次の行動、台詞、口調を、好きな言語で説明してください。",
+    "directedReply.styleHint": "任意：文体や口調、避けたい描写。",
+    "directedReply.previewHint": "ここに下書きが表示されます。使用前に編集できます。"
+}

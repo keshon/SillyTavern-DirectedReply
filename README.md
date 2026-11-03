@@ -35,6 +35,8 @@ Choose individual targets from 25 to 500 words, with 25-word steps through 300, 
 
 Writing controls, word target, style instructions, and output language are saved in your SillyTavern settings. Existing Short/Medium/Long settings migrate to 75/150/225 words. Directions and draft previews remain temporary. Word counts are less directly comparable for languages without space-separated words.
 
+Direction, style, and preview placeholder hints follow SillyTavern's UI locale through its native extension-localization support, with English fallback. These hints have translations for the 16 non-English UI locales shipped with the tested SillyTavern version. This does not change the draft's output language. Other extension labels are currently English.
+
 For example, with **English** selected, directions such as `Беру чашку, благодарю за чай, пробую и спрашиваю, что это за сорт` request an English in-character reply. The extension supplies the selected content and formatting rules and rejects responses that begin with recognized writing-brief headings. This catches the known planning-note failure; it cannot guarantee every model response follows the requested format or language.
 
 Directions and previews are sent to the configured model for generation but are not added as chat messages by this extension. Presets and other extensions can still affect background generation. The model may occasionally write for the wrong speaker or disregard length; review the preview before using it.

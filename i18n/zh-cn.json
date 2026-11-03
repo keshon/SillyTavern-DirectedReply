@@ -1,0 +1,5 @@
+{
+    "directedReply.directionHint": "用任意语言描述你接下来的动作、话语或语气。",
+    "directedReply.styleHint": "可选：语气、风格或需要避免的细节。",
+    "directedReply.previewHint": "草稿会显示在这里。使用前可先编辑。"
+}

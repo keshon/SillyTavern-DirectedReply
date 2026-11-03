@@ -1,6 +1,6 @@
 {
     "name": "sillytavern-directed-reply",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "description": "Draft your own SillyTavern roleplay reply from directions in any language.",
     "license": "AGPL-3.0-only",
     "repository": {
