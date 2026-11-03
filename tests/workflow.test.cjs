@@ -22,11 +22,16 @@ async function fixture(t, folder = 'directed-reply') {
         if (path === '/script.js') {
             return route.fulfill({ contentType: 'text/javascript', body: 'export const isGenerating = () => window.busy;' });
         }
+        if (path.endsWith('/style.css')) {
+            return route.fulfill({ contentType: 'text/css', body: readFileSync(resolve(__dirname, '..', 'style.css'), 'utf8') });
+        }
         if (path.endsWith('/index.js') || path.endsWith('/generation.js')) {
             return route.fulfill({ contentType: 'text/javascript', body: readFileSync(resolve(__dirname, '..', path.split('/').pop()), 'utf8') });
         }
         return route.fulfill({ contentType: 'text/html', body: `
             <meta charset="utf-8">
+            <link rel="stylesheet" href="/style.css">
+            <div id="extensions_settings2"></div>
             <select id="ui_language_select" hidden><option value="">Default</option><option value="en">English</option><option value="ru-ru">Русский (Russian)</option><option value="fr-fr">Français (French)</option><option value="ja-jp">日本語 (Japanese)</option></select><div id="send_form"><div id="leftSendForm"><div id="extensionsMenuButton">Magic wand</div></div><textarea id="send_textarea"></textarea></div>
             <script>
                 window.$ = callback => callback();
@@ -42,8 +47,8 @@ async function fixture(t, folder = 'directed-reply') {
                         const end = text.indexOf(suffix, prefix.length);
                         return text.startsWith(prefix) && end >= 0 ? {content:text.slice(end+suffix.length),reasoning:text.slice(prefix.length,end)} : {content:text,reasoning:''};
                     },
-                    extensionSettings: {},
-                    saveSettingsDebounced: () => { window.settingsSaved = true; },
+                    extensionSettings: JSON.parse(localStorage.getItem('test-settings') || '{}'),
+                    saveSettingsDebounced: () => { window.settingsSaved = true; localStorage.setItem('test-settings', JSON.stringify(window.ctx.extensionSettings)); },
                     chat: [{ name: 'Character', mes: 'Where were you?', is_user: false }],
                     eventTypes: { CHAT_CHANGED: 'chat-changed' },
                     eventSource: { on: (type, handler) => window.events[type] = handler },
@@ -84,6 +89,67 @@ test('private generation uses context, editable preview, and acceptance without 
     await page.locator('[data-dr="use"]').click();
     assert.equal(await page.locator('#send_textarea').inputValue(), 'My edited reply.');
     assert.equal(await page.evaluate(() => window.ctx.chat.length), 1);
+});
+
+test('placements share private state, save globally, and preserve an in-flight draft', async t => {
+    const page = await fixture(t);
+    await page.locator('#dr-direction').fill('Thank her.');
+    await page.locator('[data-dr="generate"]').click();
+    await page.locator('#dr-placement').selectOption('sidecar');
+    assert.equal(await page.locator('#directed-reply-sidecar #directed-reply-panel').count(), 1);
+    assert.equal(await page.evaluate(() => window.ctx.extensionSettings.directedReply.placement), 'sidecar');
+    await page.evaluate(() => window.finish('*I smile.*\n\n"Thank you."'));
+    await page.locator('[data-dr="use"]').waitFor({ state: 'visible' });
+    await page.waitForFunction(() => !document.querySelector('[data-dr="use"]').disabled);
+    await page.locator('#dr-placement').selectOption('workbench');
+    assert.equal(await page.locator('#directed-reply-workbench').evaluate(el => el.open), true);
+    assert.equal(await page.locator('#dr-direction').inputValue(), 'Thank her.');
+    assert.equal(await page.locator('#dr-preview').inputValue(), '*I smile.*\n\n"Thank you."');
+    await page.locator('#dr-preview').press('Escape');
+    assert.equal(await page.locator('#directed-reply-workbench').evaluate(el => el.open), false);
+    await page.locator('#dr-placement').selectOption('dock');
+    await page.locator('#directed-reply-toggle').click();
+    assert.equal(await page.locator('#send_form #directed-reply-panel').count(), 1);
+    await page.locator('[data-dr="use"]').click();
+    assert.equal(await page.locator('#send_textarea').inputValue(), '*I smile.*\n\n"Thank you."');
+    assert.equal(await page.evaluate(() => window.calls.length), 1);
+});
+
+test('sidecar adapts to narrow screens and restores without losing the draft', async t => {
+    const page = await fixture(t);
+    await page.locator('#dr-placement').selectOption('sidecar');
+    await generate(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForFunction(() => document.querySelector('#directed-reply-panel').dataset.placement === 'dock');
+    assert.equal(await page.locator('#directed-reply-sidecar').isVisible(), false);
+    assert.equal(await page.locator('#dr-preview').inputValue(), 'I glance at the door. "What key?"');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForFunction(() => document.querySelector('#directed-reply-panel').dataset.placement === 'sidecar');
+    assert.equal(await page.locator('#directed-reply-sidecar').isVisible(), true);
+    await page.locator('[data-dr="close"]').click();
+    assert.equal(await page.locator('body').evaluate(el => el.classList.contains('dr-sidecar-open')), false);
+});
+
+test('placement is restored after reload and does not enter generation instructions', async t => {
+    const page = await fixture(t);
+    await page.locator('#dr-placement').selectOption('workbench');
+    await page.locator('[data-dr="close"]').click();
+    await page.reload();
+    await page.locator('#directed-reply-toggle').click();
+    assert.equal(await page.locator('#directed-reply-workbench').evaluate(el => el.open), true);
+    await generate(page);
+    assert.doesNotMatch(await page.evaluate(() => window.calls[0].quietPrompt), /workbench|sidecar|placement/i);
+});
+
+test('chat switch closes the workbench and clears private draft state', async t => {
+    const page = await fixture(t);
+    await generate(page);
+    await page.locator('#dr-placement').selectOption('workbench');
+    await page.evaluate(() => window.events['chat-changed']());
+    assert.equal(await page.locator('#directed-reply-workbench').evaluate(el => el.open), false);
+    await page.locator('#directed-reply-toggle').click();
+    assert.equal(await page.locator('#dr-preview').inputValue(), '');
+    assert.equal(await page.locator('#dr-direction').inputValue(), '');
 });
 
 test('existing composer needs explicit replacement and can seed the draft', async t => {

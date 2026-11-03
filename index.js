@@ -46,7 +46,8 @@ function initialize() {
     panel.hidden = true;
     panel.setAttribute('aria-label', 'Directed Reply');
     panel.innerHTML = `
-        <div class="dr-heading"><strong>Draft your reply</strong><button type="button" class="menu_button" data-dr="close" aria-label="Close draft panel">✕</button></div>
+        <div class="dr-heading"><div><strong>Your next turn</strong><span class="dr-subtitle">Draft privately. Send when ready.</span></div><button type="button" class="menu_button" data-dr="close" aria-label="Close draft panel">✕</button></div>
+        <div class="dr-workspace"><div class="dr-brief">
         <label for="dr-direction">What do you want to do or say?</label>
         <textarea id="dr-direction" class="text_pole" rows="3" placeholder="Describe your next action, words, or tone—in any language." data-i18n="[placeholder]directedReply.directionHint"></textarea>
         <div class="dr-options">
@@ -74,11 +75,13 @@ function initialize() {
         </details>
         <div class="dr-actions"><button type="button" class="menu_button" data-dr="generate">Generate draft</button><button type="button" class="menu_button" data-dr="stop" hidden>Stop</button></div>
         <p data-dr="status" role="status" aria-live="polite">Private directions and previews stay outside the chat. Ctrl+Enter generates a draft.</p>
+        </div><div class="dr-draft">
         <label for="dr-preview">Your draft · edit before using</label>
         <p class="dr-hint">Markdown and line breaks are kept. Actions use *asterisks*, dialogue uses "quotes", and thoughts follow your selected format.</p>
         <textarea id="dr-preview" class="text_pole" rows="6" placeholder="Your draft will appear here. Edit it before using it." data-i18n="[placeholder]directedReply.previewHint"></textarea>
-        <div class="dr-actions"><button type="button" class="menu_button" data-dr="use" disabled>Use draft</button><span class="dr-hint">Places the draft in the chat input for you to send.</span></div>
+        <div class="dr-actions"><button type="button" class="menu_button" data-dr="use" disabled>Place in chat</button><span class="dr-hint">You decide when to send.</span></div>
         <div data-dr="replace" hidden><p>Your chat input already contains text. Replace it with this draft?</p><div class="dr-actions"><button type="button" class="menu_button" data-dr="confirm">Replace input</button><button type="button" class="menu_button" data-dr="keep">Keep existing input</button></div></div>
+        </div></div>
     `;
     sendForm.prepend(panel);
 
@@ -134,6 +137,65 @@ function initialize() {
     let session = 0;
     let replacementInput = null;
 
+    // One panel and one set of handlers serve every placement, including live moves.
+    const sidecar = document.createElement('aside');
+    sidecar.id = 'directed-reply-sidecar';
+    sidecar.hidden = true;
+    const workbench = document.createElement('dialog');
+    workbench.id = 'directed-reply-workbench';
+    workbench.setAttribute('aria-label', 'Directed Reply workbench');
+    document.body.append(sidecar, workbench);
+    const wideScreen = window.matchMedia('(min-width: 1000px)');
+    function placePanel() {
+        const open = !panel.hidden;
+        const placement = settings.placement === 'sidecar' && !wideScreen.matches ? 'dock' : settings.placement;
+        const host = placement === 'sidecar' ? sidecar : placement === 'workbench' ? workbench : sendForm;
+        const focused = panel.contains(document.activeElement) ? document.activeElement : null;
+        // Close before moving out: closing a dialog restores focus to its invoker.
+        if (workbench.open && (placement !== 'workbench' || !open)) workbench.close();
+        if (panel.parentElement !== host) host.prepend(panel);
+        panel.dataset.placement = placement;
+        sidecar.hidden = placement !== 'sidecar' || !open;
+        document.body.classList.toggle('dr-sidecar-open', !sidecar.hidden);
+        if (placement === 'workbench' && open && !workbench.open) workbench.showModal();
+        if (open && focused) focused.focus({ preventScroll: true });
+    }
+    wideScreen.addEventListener('change', placePanel);
+    workbench.addEventListener('cancel', event => {
+        event.preventDefault();
+        setOpen(false);
+        toggle.focus();
+    });
+
+    const settingsHost = document.querySelector('#extensions_settings2') || document.querySelector('#extensions_settings');
+    if (settingsHost) {
+        const drawer = document.createElement('div');
+        drawer.id = 'directed-reply-settings';
+        drawer.className = 'extension_container';
+        drawer.innerHTML = `<div class="inline-drawer">
+            <div class="inline-drawer-toggle inline-drawer-header"><b>Directed Reply</b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div>
+            <div class="inline-drawer-content">
+                <label for="dr-placement">Draft window placement</label>
+                <select id="dr-placement" class="text_pole">
+                    <option value="dock">Compact dock · above the chat input</option>
+                    <option value="sidecar">Conversation sidecar · beside the chat</option>
+                    <option value="workbench">Focused workbench · dialog</option>
+                </select>
+                <p class="dr-hint">Saved for all chats. The sidecar uses the dock on screens narrower than 1000px. Colors follow your SillyTavern theme.</p>
+                <button type="button" class="menu_button" data-dr-open>Open drafter</button>
+            </div></div>`;
+        settingsHost.append(drawer);
+        const placement = drawer.querySelector('#dr-placement');
+        placement.value = settings.placement;
+        placement.addEventListener('change', () => {
+            settings.placement = placement.value;
+            context().saveSettingsDebounced();
+            placePanel();
+        });
+        drawer.querySelector('[data-dr-open]').addEventListener('click', () => setOpen(true));
+    }
+    placePanel();
+
     function status(message) {
         find('status').textContent = message;
     }
@@ -159,6 +221,7 @@ function initialize() {
     function setOpen(open) {
         panel.hidden = !open;
         toggle.setAttribute('aria-expanded', String(open));
+        placePanel();
         if (open) direction.focus();
     }
 
@@ -273,7 +336,7 @@ function initialize() {
     }
 
     toggle.addEventListener('click', () => setOpen(panel.hidden));
-    find('close').addEventListener('click', () => setOpen(false));
+    find('close').addEventListener('click', () => { setOpen(false); toggle.focus(); });
     find('generate').addEventListener('click', generate);
     find('stop').addEventListener('click', cancel);
     find('use').addEventListener('click', () => applyDraft());
@@ -292,7 +355,11 @@ function initialize() {
     panel.addEventListener('keydown', event => {
         // Keep typing and Enter inside this panel away from chat hotkeys.
         event.stopPropagation();
-        if (event.key === 'Escape') setOpen(false);
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setOpen(false);
+            toggle.focus();
+        }
     });
 
     const ctx = context();

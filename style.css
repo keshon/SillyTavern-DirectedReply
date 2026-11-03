@@ -1,3 +1,5 @@
+/* Borders identify fields, the panel boundary, and expanded writing controls.
+   All colors inherit SillyTavern's active theme, including light themes. */
 #directed-reply-toggle {
     background: transparent;
     border: 0;
@@ -6,92 +8,103 @@
     margin: 0;
     padding: 8px;
 }
-
-#directed-reply-toggle[aria-expanded="true"] {
-    color: var(--SmartThemeQuoteColor);
-}
-
+#directed-reply-toggle[aria-expanded="true"] { color: var(--SmartThemeQuoteColor); }
 #directed-reply-panel {
     width: 100%;
-    max-height: min(70dvh, 650px);
+    max-height: min(65dvh, 760px);
     overflow-y: auto;
-    padding: 12px;
+    padding: 20px;
     box-sizing: border-box;
     border-bottom: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeBodyColor);
     text-align: left;
+    white-space: normal;
+    font-size: var(--mainFontSize, 16px);
+    container-type: inline-size;
 }
-
-#directed-reply-panel [hidden],
-#directed-reply-panel[hidden] {
-    display: none !important;
-}
-
-#directed-reply-panel .dr-heading,
-#directed-reply-panel .dr-actions,
+#directed-reply-panel [hidden], #directed-reply-panel[hidden],
+#directed-reply-sidecar[hidden] { display: none !important; }
+#directed-reply-panel .dr-heading, #directed-reply-panel .dr-actions,
 #directed-reply-panel .dr-options {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
 }
-
-#directed-reply-panel .dr-heading {
-    justify-content: space-between;
-}
-
-#directed-reply-panel label {
-    display: block;
-    margin: 6px 0;
-}
-
-#directed-reply-panel .dr-options label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    max-width: 100%;
-}
-
-#directed-reply-panel textarea {
-    width: 100%;
-    resize: vertical;
-    min-height: 65px;
-}
-
-#directed-reply-panel select {
-    width: auto;
-    margin: 0 8px;
-    max-width: 100%;
-}
-
-#directed-reply-panel .dr-writing {
+#directed-reply-panel .dr-heading { justify-content: space-between; flex-wrap: nowrap; margin-bottom: 18px; }
+#directed-reply-panel .dr-heading strong { font-size: 1.1em; }
+#directed-reply-panel .dr-heading button { flex-shrink: 0; }
+#directed-reply-panel .dr-subtitle { display: block; font-size: .75em; opacity: .75; margin-top: 4px; }
+#directed-reply-panel .dr-workspace { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 22px; }
+#directed-reply-panel .dr-brief, #directed-reply-panel .dr-draft { min-width: 0; }
+#directed-reply-panel label { display: block; font-size: .85em; margin: 0 0 8px; }
+#directed-reply-panel .dr-options { align-items: flex-start; margin-bottom: 14px; }
+#directed-reply-panel .dr-options label { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; max-width: 100%; margin: 0; }
+#directed-reply-panel textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertical; min-height: 65px; margin: 0 0 14px; padding: 10px; line-height: 1.5; }
+#directed-reply-panel #dr-direction { min-height: 112px; }
+#directed-reply-panel #dr-preview { min-height: 240px; }
+#directed-reply-panel select { width: auto; min-width: 0; margin: 0; max-width: 100%; font-size: 1em; }
+#directed-reply-panel .dr-writing { border: 0; padding: 0; margin: 0 0 14px; }
+#directed-reply-panel .dr-writing[open] { border: 1px solid var(--SmartThemeBorderColor); border-radius: 6px; padding: 10px; }
+#directed-reply-panel summary { cursor: pointer; font-size: .85em; padding: 8px 0; }
+#directed-reply-panel .dr-writing[open] summary { margin-bottom: 10px; }
+#directed-reply-panel input[type="number"] { width: 90px; }
+#directed-reply-panel p, #directed-reply-panel .dr-hint,
+#directed-reply-settings .dr-hint { font-size: .8em; opacity: .8; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+#directed-reply-panel [data-dr="status"] { margin: 12px 0 0; }
+#directed-reply-panel .dr-draft > .dr-hint { margin: 0 0 10px; }
+#directed-reply-panel .dr-draft > .dr-actions { justify-content: space-between; }
+#directed-reply-panel [data-dr="generate"], #directed-reply-panel [data-dr="use"]:not(:disabled) { border-color: var(--SmartThemeQuoteColor); }
+#directed-reply-panel button:disabled { opacity: .5; cursor: default; }
+#directed-reply-panel .menu_button { width: auto; white-space: nowrap; flex-shrink: 0; }
+#directed-reply-panel :is(button, select, textarea, input):focus-visible { outline: 2px solid var(--SmartThemeQuoteColor); outline-offset: 2px; }
+#directed-reply-sidecar, #directed-reply-workbench {
+    background: var(--SmartThemeBlurTintColor, #202020);
+    color: var(--SmartThemeBodyColor);
     border: 1px solid var(--SmartThemeBorderColor);
-    border-radius: 6px;
-    padding: 8px;
-    margin: 8px 0;
+    border-radius: 12px;
+    backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
+    box-sizing: border-box;
 }
-
-#directed-reply-panel summary {
-    cursor: pointer;
+#directed-reply-sidecar {
+    position: fixed;
+    top: calc(var(--topBarBlockSize, 40px) + 12px);
+    right: 12px;
+    width: min(440px, 38dvw);
+    max-height: calc(100dvh - var(--topBarBlockSize, 40px) - 24px);
+    z-index: 31;
+    overflow: hidden;
 }
-
-#directed-reply-panel .dr-content label {
-    margin-right: 12px;
+#directed-reply-sidecar #directed-reply-panel { max-height: calc(100dvh - var(--topBarBlockSize, 40px) - 26px); border: 0; }
+#directed-reply-sidecar .dr-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+@media (min-width: 1000px) {
+    body.dr-sidecar-open #sheld {
+        max-width: calc(100dvw - min(440px, 38dvw) - 36px);
+        right: calc(min(440px, 38dvw) + 24px);
+        left: 0;
+    }
 }
-
-#directed-reply-panel input[type="number"] {
-    width: 90px;
+#directed-reply-workbench {
+    padding: 0;
+    width: min(1040px, 95dvw);
+    max-width: 95dvw;
+    max-height: 88dvh;
+    overflow: hidden;
 }
-
-#directed-reply-panel p,
-#directed-reply-panel .dr-hint {
-    font-size: 0.85em;
-    opacity: 0.85;
-    white-space: normal;
-    overflow-wrap: anywhere;
+#directed-reply-workbench::backdrop { background: #0008; backdrop-filter: blur(4px); }
+#directed-reply-workbench #directed-reply-panel { max-height: 88dvh; padding: 26px; border: 0; }
+#directed-reply-workbench .dr-draft { display: flex; flex-direction: column; }
+#directed-reply-workbench #dr-preview { flex: 1; min-height: 330px; }
+#directed-reply-workbench .dr-brief > .dr-options { flex-direction: column; }
+/* Dock columns follow the actual chat width, which can differ from the viewport. */
+@container (max-width: 580px) {
+    #directed-reply-panel .dr-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+    #directed-reply-panel #dr-preview { min-height: 180px; }
 }
-
-#directed-reply-panel button:disabled {
-    opacity: 0.5;
-    cursor: default;
+@media (max-width: 740px) {
+    #directed-reply-panel { padding: 14px; }
+    #directed-reply-panel .dr-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+    #directed-reply-panel textarea { font-size: max(16px, 1em); }
+    #directed-reply-workbench #directed-reply-panel { padding: 18px; }
+    #directed-reply-workbench #dr-preview { min-height: 220px; }
 }

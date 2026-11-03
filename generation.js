@@ -1,5 +1,6 @@
 export const WORD_TARGETS = [25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 350, 400, 500];
 export const DEFAULTS = {
+    placement: 'dock',
     language: 'en', words: 150,
     actions: true, dialogue: true, thoughts: 'off', thoughtFormat: 'inline',
     sensory: false, emotions: true, perspective: 'first', tense: 'present', style: '',
@@ -14,6 +15,7 @@ export function normalizeSettings(saved = {}) {
         settings[key] = typeof settings[key] === 'boolean' ? settings[key] : DEFAULTS[key];
     }
     for (const [key, choices] of Object.entries({
+        placement: ['dock', 'sidecar', 'workbench'],
         thoughts: ['off', 'requested', 'include'], thoughtFormat: ['inline', 'fenced', 'italics', 'plain'],
         perspective: ['first', 'third', 'chat'], tense: ['present', 'past', 'chat'],
     })) {

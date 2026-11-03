@@ -9,7 +9,17 @@ Draft your own roleplay reply from a short direction. Uses SillyTavern's current
 3. Describe your intended action, dialogue, tone, or constraints in Russian, English, or another language. Choose the **Draft language** separately. The list mirrors SillyTavern’s UI languages, plus English (default) and Match conversation. Match conversation uses the language of the RP rather than your directions.
 4. Click **Generate draft** or press Ctrl+Enter (Cmd+Enter on macOS).
 5. Edit the preview or regenerate it. **Develop text already in the chat input** optionally includes your existing composer text as a starting draft.
-6. Click **Use draft** to put the preview in the normal composer, then send it yourself. Existing composer text requires an explicit replacement click.
+6. Click **Place in chat** to put the preview in the normal composer, then send it yourself. Existing composer text requires an explicit replacement click.
+
+## Window placement
+
+Open **Extensions → Directed Reply → Draft window placement** to choose:
+
+- **Compact dock** (default): direction and editable draft above the chat input, side by side when the chat is wide enough.
+- **Conversation sidecar**: a dedicated pane to the right, with space reserved for the chat. Below 1000px viewport width, it uses the dock automatically and returns to the sidecar when space is available.
+- **Focused workbench**: a larger modal dialog with direction and controls beside the editor. Escape or the close button returns to the chat.
+
+The placement is saved per SillyTavern user for all chats and survives reloads. Switching placement preserves the current direction, draft, and pending generation. Closing any placement keeps its private text during the page session; it does not stop generation. Use **Stop** to cancel. All placements use the same writing preferences and follow the active SillyTavern theme. Placement never enters the model prompt.
 
 **Stop** discards the pending result and preserves your previous preview. Closing the panel preserves the current draft during this page session; changing chats clears it and cancels a pending request. Reloading the page clears private directions and previews.
 
@@ -27,7 +37,7 @@ Actions and spoken dialogue are enabled by default. **Inner thoughts are off by 
 
 Backticks are Markdown presentation conventions, not a universal roleplay syntax. Triple backticks create a code block; single backticks create inline code. Neither means model reasoning. The selected convention applies only to your character's inner voice.
 
-The preview is a plain-text Markdown editor. **Use draft** preserves its Markdown characters and internal line breaks. A model can disregard a writing control; review the preview before accepting it. Actions, dialogue, and thoughts are output forms, while tone, sensory detail, emotion, perspective, and tense shape their content. At least one output form must be allowed.
+The preview is a plain-text Markdown editor. **Place in chat** preserves its Markdown characters and internal line breaks. A model can disregard a writing control; review the preview before accepting it. Actions, dialogue, and thoughts are output forms, while tone, sensory detail, emotion, perspective, and tense shape their content. At least one output form must be allowed.
 
 ## Word targets and language
 
@@ -71,7 +81,7 @@ For local development, clone this repository directly into SillyTavern's `public
 
 6. **Choose the draft's writing preferences.** Open Directed Reply using the pen nib after the magic wand. Choose **Draft language** and **Word target**. Open **Writing controls** to allow the content you want. Inner thoughts default to Off. Choose Only when requested or Include a brief thought if you want them, then select their Markdown format. At least one of actions, dialogue, or inner thoughts must be allowed.
 
-7. **Run a small test.** Start with about 100–150 words and a direction such as `Беру чашку, благодарю за чай и спрашиваю, что это за сорт`, with English selected. Click **Generate draft**. Check that the preview contains an English in-character message, follows the selected writing controls, and has no model reasoning or template markers. Edit it if necessary, click **Use draft**, and send it through the normal composer when ready. Generation and acceptance do not automatically send a chat message.
+7. **Run a small test.** Start with about 100–150 words and a direction such as `Беру чашку, благодарю за чай и спрашиваю, что это за сорт`, with English selected. Click **Generate draft**. Check that the preview contains an English in-character message, follows the selected writing controls, and has no model reasoning or template markers. Edit it if necessary, click **Place in chat**, and send it through the normal composer when ready. Generation and acceptance do not automatically send a chat message.
 
 After changing models, repeat the connection, formatting, reasoning, and budget checks. The extension does not change those global settings for you.
 
