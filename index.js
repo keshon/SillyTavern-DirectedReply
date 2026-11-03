@@ -54,7 +54,6 @@ function initialize() {
             <label for="dr-language">Draft language <select id="dr-language" class="text_pole"><option value="en">English</option><option value="ru-ru">Русский</option><option value="chat">Match conversation</option></select></label>
             <label for="dr-length">Word target <select id="dr-length" class="text_pole"></select></label>
             <label data-dr="custom-words" hidden for="dr-custom-words">Words <input id="dr-custom-words" type="number" min="25" max="1000" step="1" class="text_pole" value="150"></label>
-            <label><input type="checkbox" data-dr="seed"> Develop text already in the chat input</label>
         </div>
         <details class="dr-writing"><summary>Writing controls</summary>
             <div class="dr-options dr-content">
@@ -214,7 +213,6 @@ function initialize() {
         customWords.disabled = busy;
         for (const control of Object.values(controls)) control.disabled = busy;
         updateControlState();
-        find('seed').disabled = busy;
         preview.disabled = busy;
         panel.setAttribute('aria-busy', String(busy));
     }
@@ -272,7 +270,7 @@ function initialize() {
         status('Writing your reply…');
         try {
             const result = await ctx.generateQuietPrompt({
-                quietPrompt: buildPrompt(ctx, direction.value.trim(), options, languages.get(language.value), find('seed').checked ? composer.value : ''),
+                quietPrompt: buildPrompt(ctx, direction.value.trim(), options, languages.get(language.value)),
                 quietToLoud: false,
                 skipWIAN: false,
             });

@@ -25,7 +25,7 @@ export function normalizeSettings(saved = {}) {
     return settings;
 }
 
-export function buildPrompt(ctx, direction, options, languageName, seed = '') {
+export function buildPrompt(ctx, direction, options, languageName) {
     const thoughts = {
         off: 'Do not include inner thoughts.',
         requested: 'Include inner thoughts only if the player explicitly asks for them.',
@@ -55,7 +55,6 @@ export function buildPrompt(ctx, direction, options, languageName, seed = '') {
         options.style.trim() ? `ADDITIONAL STYLE INSTRUCTIONS:\n${options.style.trim()}` : '',
         'These controls override prior writing conventions. Keep natural line breaks. Do not fence the entire reply.',
         `PLAYER DIRECTION:\n${direction}`,
-        seed ? `EXISTING PLAYER DRAFT TO DEVELOP:\n${seed}` : '',
         'Do not control other characters. Do not invent player names or placeholders.',
         'Return only the finished RP message: no labels, planning, model reasoning, translated brief, or explanation.',
     ].filter(Boolean).join('\n\n');

@@ -11,7 +11,7 @@ Each draft builds one request-local instruction string. The extension does not r
 
 This does not make a draft an isolated small-context request: World Info and Author's Note remain enabled. Recursive lore activation, long history, model reasoning, output length, and backend prompt-cache reuse can all affect latency. The browser's chat snapshots are local stale-draft checks, not extra text sent to the model. Clearing the backend's KV cache is not injection cleanup and can require more prompt processing.
 
-The context audit reduced a synthetic default brief from 545 to 228 tokens using the development backend's tokenizer with special tokens disabled. These counts exclude the rest of the SillyTavern request and vary by tokenizer, direction, style instructions, and optional composer seed. This is a measured input-size reduction, not a measured end-to-end speedup. Previous generations are not retained in later briefs unless you deliberately put text in the composer and select the seed option.
+The context audit reduced a synthetic default brief from 545 to 228 tokens using the development backend's tokenizer with special tokens disabled. These counts exclude the rest of the SillyTavern request and vary by tokenizer, direction, and style instructions. This is a measured input-size reduction, not a measured end-to-end speedup. Previous draft previews and unsent composer text are not included in the extension's brief.
 
 To inspect brief size without generating a reply, run `npm run audit:prompt`. For a comparison against an earlier commit and exact counts from a compatible tokenizer, use:
 

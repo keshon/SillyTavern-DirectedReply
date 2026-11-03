@@ -45,8 +45,6 @@ See the [step-by-step setup and troubleshooting guide](docs/setup.md) for exact 
 5. Review the draft. Edit it directly or click **Regenerate draft**.
 6. Click **Place in chat**. The draft goes into the normal chat input; send it when ready. Replacing existing input requires a separate confirmation.
 
-Already started writing? Enable **Develop text already in the chat input** to use that text as a starting draft.
-
 ### Give directions in one language, write in another
 
 For example, enter:

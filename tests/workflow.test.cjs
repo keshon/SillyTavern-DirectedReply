@@ -202,12 +202,12 @@ test('chat switch closes the workbench and clears private draft state', async t 
     assert.equal(await page.locator('#dr-direction').inputValue(), '');
 });
 
-test('existing composer needs explicit replacement and can seed the draft', async t => {
+test('unsent composer text stays outside the brief and requires explicit replacement', async t => {
     const page = await fixture(t);
     await page.locator('#send_textarea').fill('My existing text.');
-    await page.locator('[data-dr="seed"]').check();
     await generate(page);
-    assert.match(await page.evaluate(() => window.calls[0].quietPrompt), /My existing text/);
+    assert.doesNotMatch(await page.evaluate(() => window.calls[0].quietPrompt), /My existing text|EXISTING PLAYER DRAFT/);
+    assert.equal(await page.locator('[data-dr="seed"]').count(), 0);
     await page.locator('[data-dr="use"]').click();
     assert.equal(await page.locator('#send_textarea').inputValue(), 'My existing text.');
     await page.locator('[data-dr="keep"]').click();
