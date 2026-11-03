@@ -40,6 +40,21 @@ test('old preferences migrate and custom word targets stay within supported limi
     for (const target of [50, 75, 100, 125, 150, 175, 200, 225, 250]) assert.ok(WORD_TARGETS.includes(target));
 });
 
+test('selected perspective overrides English and Russian direction pronouns without rewriting dialogue', async () => {
+    const { buildPrompt, normalizeSettings, cleanDraft } = await modulePromise;
+    for (const direction of ['We take the cup and smile.', 'Мы берём чашку и улыбаемся.']) {
+        for (const perspective of ['first', 'third', 'chat']) {
+            const prompt = buildPrompt(ctx, direction, normalizeSettings({ perspective }), 'English');
+            const rule = prompt.split('\n\n').find(line => line.startsWith('PERSPECTIVE:'));
+            assert.match(rule, { first: /First person singular \(I\/me\).*even if.*we\/us or мы\/нас/, third: /Third person.*regardless of the direction/, chat: /recent in-character narration, not the direction/ }[perspective]);
+            assert.ok(prompt.includes(`PLAYER DIRECTION:\n${direction}`));
+            assert.match(prompt, /Do not infer other characters’ actions from a plural direction/);
+        }
+    }
+    const reply = '*I look at her.* "We should leave together."';
+    assert.equal(cleanDraft(reply, { powerUserSettings: {} }), reply);
+});
+
 test('reasoning cleanup follows any selected native template and preserves RP Markdown', async () => {
     const { cleanDraft } = await modulePromise;
     const reply = '*I pause.*\n\n```\nAn in-character thought.\n```\n\n"Hello."';

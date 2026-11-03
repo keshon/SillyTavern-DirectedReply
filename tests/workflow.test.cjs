@@ -354,6 +354,25 @@ test('output language and length are independently selectable and saved', async 
     await page.waitForFunction(() => !document.querySelector('[data-dr="generate"]').disabled);
 });
 
+test('Perspective selection reaches the request and survives reload with plural directions', async t => {
+    const page = await fixture(t);
+    await page.locator('.dr-writing summary').click();
+    for (const [perspective, expected] of [['first', /First person singular/], ['third', /Third person/], ['chat', /Match the player’s recent in-character narration/]]) {
+        await page.locator('#dr-perspective').selectOption(perspective);
+        await page.locator('#dr-direction').fill('Мы берём чашку и улыбаемся.');
+        await page.locator('[data-dr="generate"]').click();
+        const prompt = await page.evaluate(() => window.calls.at(-1).quietPrompt);
+        assert.match(prompt.split('\n\n').find(line => line.startsWith('PERSPECTIVE:')), expected);
+        assert.equal(await page.evaluate(() => window.ctx.extensionSettings.directedReply.perspective), perspective);
+        await page.evaluate(() => window.finish('*I smile.*'));
+        await page.waitForFunction(() => !document.querySelector('[data-dr="generate"]').disabled);
+    }
+    await page.reload();
+    await page.locator('#directed-reply-toggle').click();
+    await page.locator('.dr-writing summary').click();
+    assert.equal(await page.locator('#dr-perspective').inputValue(), 'chat');
+});
+
 test('planning-note responses are rejected without replacing the previous draft', async t => {
     const page = await fixture(t);
     await generate(page, 'A usable draft.');

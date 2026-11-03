@@ -70,6 +70,8 @@ Open **Writing controls** to choose what the draft may contain:
 | Perspective and tense | First/third person and present/past tense, or match the player |
 | Additional style instructions | Tone, constraints, and details to avoid |
 
+**Perspective** controls the draft's narration independently of your directions. With First person selected, a brief such as “we take the cup” or “мы берём чашку” requests narration as “I take the cup.” Third person uses the player in third person; Match player follows recent in-character narration. Dialogue can still use “we” when referring to a group.
+
 <img src="docs/images/writing-controls.jpg" width="440" alt="Expanded writing controls with actions and dialogue enabled, inner thoughts off, and first-person present-tense narration selected.">
 
 *Writing controls in the staged demo. At least one of actions, dialogue, or inner thoughts must be allowed.*
