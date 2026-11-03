@@ -76,8 +76,9 @@ function initialize() {
         <div class="dr-actions"><button type="button" class="menu_button" data-dr="generate">Generate draft</button><button type="button" class="menu_button" data-dr="stop" hidden>Stop</button></div>
         <p data-dr="status" role="status" aria-live="polite">Private directions and previews stay outside the chat. Ctrl+Enter generates a draft.</p>
         </div><div class="dr-draft">
-        <label for="dr-preview">Your draft · edit before using</label>
-        <p class="dr-hint">Markdown and line breaks are kept. Actions use *asterisks*, dialogue uses "quotes", and thoughts follow your selected format.</p>
+        <div class="dr-preview-heading"><label for="dr-preview">Your draft · edit before using</label><button type="button" class="dr-info" data-dr="format-info" aria-label="Draft formatting help" aria-expanded="false" aria-controls="dr-format-help">ⓘ</button>
+            <div id="dr-format-help" class="dr-format-help" hidden role="note">Markdown and line breaks are kept. Actions use *asterisks*, dialogue uses "quotes", and thoughts follow your selected format.</div>
+        </div>
         <textarea id="dr-preview" class="text_pole" rows="6" placeholder="Your draft will appear here. Edit it before using it." data-i18n="[placeholder]directedReply.previewHint"></textarea>
         <div class="dr-actions"><button type="button" class="menu_button" data-dr="use" disabled>Place in chat</button><span class="dr-hint">You decide when to send.</span></div>
         <div data-dr="replace" hidden><p>Your chat input already contains text. Replace it with this draft?</p><div class="dr-actions"><button type="button" class="menu_button" data-dr="confirm">Replace input</button><button type="button" class="menu_button" data-dr="keep">Keep existing input</button></div></div>
@@ -220,6 +221,7 @@ function initialize() {
 
     function setOpen(open) {
         panel.hidden = !open;
+        if (!open) hideFormatHelp();
         toggle.setAttribute('aria-expanded', String(open));
         placePanel();
         if (open) direction.focus();
@@ -342,6 +344,18 @@ function initialize() {
     find('use').addEventListener('click', () => applyDraft());
     find('confirm').addEventListener('click', () => applyDraft(true));
     find('keep').addEventListener('click', () => { find('replace').hidden = true; });
+    function hideFormatHelp() {
+        panel.querySelector('#dr-format-help').hidden = true;
+        find('format-info').setAttribute('aria-expanded', 'false');
+    }
+    find('format-info').addEventListener('click', () => {
+        const help = panel.querySelector('#dr-format-help');
+        help.hidden = !help.hidden;
+        find('format-info').setAttribute('aria-expanded', String(!help.hidden));
+    });
+    document.addEventListener('pointerdown', event => {
+        if (!panel.querySelector('.dr-preview-heading').contains(event.target)) hideFormatHelp();
+    });
     preview.addEventListener('input', () => {
         find('replace').hidden = true;
         render();
@@ -357,6 +371,11 @@ function initialize() {
         event.stopPropagation();
         if (event.key === 'Escape') {
             event.preventDefault();
+            if (!panel.querySelector('#dr-format-help').hidden) {
+                hideFormatHelp();
+                find('format-info').focus();
+                return;
+            }
             setOpen(false);
             toggle.focus();
         }

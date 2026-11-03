@@ -141,6 +141,56 @@ test('placement is restored after reload and does not enter generation instructi
     assert.doesNotMatch(await page.evaluate(() => window.calls[0].quietPrompt), /workbench|sidecar|placement/i);
 });
 
+test('two-column fields and action buttons align with controls collapsed and expanded', async t => {
+    const page = await fixture(t);
+    await page.setViewportSize({ width: 1400, height: 1100 });
+    await page.addStyleTag({ content: ':root { --mainFontSize: 24px; }' });
+    for (const mode of ['dock', 'workbench']) {
+        if (mode === 'workbench') await page.locator('#dr-placement').selectOption(mode);
+        for (const expanded of [false, true]) {
+            await page.locator('.dr-writing').evaluate((el, open) => el.open = open, expanded);
+            const positions = await page.evaluate(() => {
+                const rect = selector => document.querySelector(selector).getBoundingClientRect();
+                return { left: rect('#dr-direction').top, right: rect('#dr-preview').top,
+                    generate: rect('[data-dr="generate"]').top, use: rect('[data-dr="use"]').top };
+            });
+            assert.ok(Math.abs(positions.left - positions.right) < 1, `${mode}: textarea tops differ`);
+            assert.ok(Math.abs(positions.generate - positions.use) < 1, `${mode}: action tops differ`);
+        }
+        await page.locator('.dr-writing').evaluate(el => el.open = false);
+    }
+    await page.locator('[data-dr="format-info"]').click();
+    assert.equal(await page.locator('#dr-format-help').isVisible(), true);
+    await page.locator('[data-dr="format-info"]').press('Escape');
+    assert.equal(await page.locator('#dr-format-help').isVisible(), false);
+    assert.equal(await page.locator('#directed-reply-workbench').evaluate(el => el.open), true);
+});
+
+test('sidecar meets the chat edge and fills the viewport at different chat widths', async t => {
+    const page = await fixture(t);
+    await page.evaluate(() => {
+        const sheld = document.createElement('div');
+        sheld.id = 'sheld';
+        document.querySelector('#send_form').before(sheld);
+        sheld.append(document.querySelector('#send_form'));
+    });
+    await page.addStyleTag({ content: '#sheld { position: absolute; top: 40px; }' });
+    await page.locator('#dr-placement').selectOption('sidecar');
+    for (const [viewportWidth, chatWidth] of [[1280, '50vw'], [2329, '55vw'], [1280, '95vw']]) {
+        await page.setViewportSize({ width: viewportWidth, height: 900 });
+        await page.evaluate(width => document.body.style.setProperty('--sheldWidth', width), chatWidth);
+        const geometry = await page.evaluate(() => {
+            const chat = document.querySelector('#sheld').getBoundingClientRect();
+            const pane = document.querySelector('#directed-reply-sidecar').getBoundingClientRect();
+            return { gap: pane.left - chat.right, top: pane.top, bottom: pane.bottom, right: pane.right };
+        });
+        assert.ok(Math.abs(geometry.gap) < 1);
+        assert.equal(geometry.top, 0);
+        assert.equal(geometry.bottom, 900);
+        assert.equal(geometry.right, viewportWidth);
+    }
+});
+
 test('chat switch closes the workbench and clears private draft state', async t => {
     const page = await fixture(t);
     await generate(page);

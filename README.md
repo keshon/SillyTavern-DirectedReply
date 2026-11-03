@@ -37,7 +37,7 @@ Actions and spoken dialogue are enabled by default. **Inner thoughts are off by 
 
 Backticks are Markdown presentation conventions, not a universal roleplay syntax. Triple backticks create a code block; single backticks create inline code. Neither means model reasoning. The selected convention applies only to your character's inner voice.
 
-The preview is a plain-text Markdown editor. **Place in chat** preserves its Markdown characters and internal line breaks. A model can disregard a writing control; review the preview before accepting it. Actions, dialogue, and thoughts are output forms, while tone, sensory detail, emotion, perspective, and tense shape their content. At least one output form must be allowed.
+The preview is a plain-text Markdown editor. The **ⓘ** button beside its title opens formatting help; click again, click outside, or press Escape to dismiss it. **Place in chat** preserves the preview's Markdown characters and internal line breaks. A model can disregard a writing control; review the preview before accepting it. Actions, dialogue, and thoughts are output forms, while tone, sensory detail, emotion, perspective, and tense shape their content. At least one output form must be allowed.
 
 ## Word targets and language
 

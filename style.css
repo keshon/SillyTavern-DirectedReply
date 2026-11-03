@@ -32,17 +32,25 @@
     flex-wrap: wrap;
 }
 #directed-reply-panel .dr-heading { justify-content: space-between; flex-wrap: nowrap; margin-bottom: 18px; }
+#directed-reply-panel .dr-actions { align-items: flex-start; }
 #directed-reply-panel .dr-heading strong { font-size: 1.1em; }
 #directed-reply-panel .dr-heading button { flex-shrink: 0; }
 #directed-reply-panel .dr-subtitle { display: block; font-size: .75em; opacity: .75; margin-top: 4px; }
-#directed-reply-panel .dr-workspace { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 22px; }
-#directed-reply-panel .dr-brief, #directed-reply-panel .dr-draft { min-width: 0; }
+#directed-reply-panel .dr-workspace { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); grid-template-rows: auto auto auto auto auto auto; column-gap: 22px; }
+#directed-reply-panel .dr-brief, #directed-reply-panel .dr-draft { min-width: 0; display: grid; grid-template-rows: subgrid; grid-row: 1 / span 6; }
+#directed-reply-panel .dr-brief { grid-column: 1; }
+#directed-reply-panel .dr-draft { grid-column: 2; }
+#directed-reply-panel .dr-brief > .dr-actions, #directed-reply-panel .dr-draft > .dr-actions { grid-row: 5; align-self: start; }
+#directed-reply-panel .dr-preview-heading { grid-row: 1; display: flex; align-items: start; gap: 6px; position: relative; margin-bottom: 8px; }
+#directed-reply-panel .dr-preview-heading label { margin: 0; }
+#directed-reply-panel .dr-info { font: inherit; line-height: 1; padding: 0; color: inherit; background: transparent; border: 0; cursor: pointer; flex-shrink: 0; }
+#directed-reply-panel .dr-format-help { position: absolute; z-index: 2; top: 100%; right: 0; width: min(340px, 100%); padding: 12px; border: 1px solid var(--SmartThemeBorderColor); border-radius: 6px; background: var(--SmartThemeBlurTintColor, #202020); backdrop-filter: blur(20px); font-size: .8em; line-height: 1.5; box-shadow: 0 4px 12px #0004; }
 #directed-reply-panel label { display: block; font-size: .85em; margin: 0 0 8px; }
 #directed-reply-panel .dr-options { align-items: flex-start; margin-bottom: 14px; }
 #directed-reply-panel .dr-options label { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; max-width: 100%; margin: 0; }
 #directed-reply-panel textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertical; min-height: 65px; margin: 0 0 14px; padding: 10px; line-height: 1.5; }
 #directed-reply-panel #dr-direction { min-height: 112px; }
-#directed-reply-panel #dr-preview { min-height: 240px; }
+#directed-reply-panel #dr-preview { grid-row: 2 / 5; height: auto; min-height: 240px; align-self: stretch; }
 #directed-reply-panel select { width: auto; min-width: 0; margin: 0; max-width: 100%; font-size: 1em; }
 #directed-reply-panel .dr-writing { border: 0; padding: 0; margin: 0 0 14px; }
 #directed-reply-panel .dr-writing[open] { border: 1px solid var(--SmartThemeBorderColor); border-radius: 6px; padding: 10px; }
@@ -52,7 +60,6 @@
 #directed-reply-panel p, #directed-reply-panel .dr-hint,
 #directed-reply-settings .dr-hint { font-size: .8em; opacity: .8; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
 #directed-reply-panel [data-dr="status"] { margin: 12px 0 0; }
-#directed-reply-panel .dr-draft > .dr-hint { margin: 0 0 10px; }
 #directed-reply-panel .dr-draft > .dr-actions { justify-content: space-between; }
 #directed-reply-panel [data-dr="generate"], #directed-reply-panel [data-dr="use"]:not(:disabled) { border-color: var(--SmartThemeQuoteColor); }
 #directed-reply-panel button:disabled { opacity: .5; cursor: default; }
@@ -68,20 +75,33 @@
 }
 #directed-reply-sidecar {
     position: fixed;
-    top: calc(var(--topBarBlockSize, 40px) + 12px);
-    right: 12px;
-    width: min(440px, 38dvw);
-    max-height: calc(100dvh - var(--topBarBlockSize, 40px) - 24px);
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: calc(var(--dr-chat-left) + var(--dr-chat-width));
+    height: 100dvh;
     z-index: 31;
     overflow: hidden;
 }
-#directed-reply-sidecar #directed-reply-panel { max-height: calc(100dvh - var(--topBarBlockSize, 40px) - 26px); border: 0; }
-#directed-reply-sidecar .dr-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+#directed-reply-sidecar #directed-reply-panel { height: 100%; max-height: none; border: 0; display: flex; flex-direction: column; padding: 16px; }
+#directed-reply-sidecar .dr-workspace { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+#directed-reply-sidecar .dr-brief, #directed-reply-sidecar .dr-draft { display: block; }
+#directed-reply-sidecar .dr-draft { display: flex; flex-direction: column; flex: 1; }
+#directed-reply-sidecar #dr-direction { min-height: 80px; }
+#directed-reply-sidecar #dr-preview { flex: 1; height: auto; min-height: 130px; }
+#directed-reply-sidecar .dr-heading { flex-shrink: 0; margin-bottom: 14px; }
+#directed-reply-sidecar .dr-draft > .dr-actions { align-self: stretch; }
 @media (min-width: 1000px) {
+    body.dr-sidecar-open {
+        --dr-chat-width: min(var(--sheldWidth, 50dvw), calc(100dvw - 320px));
+        --dr-chat-left: max(0px, min(calc((100dvw - var(--sheldWidth, 50dvw)) / 2), calc(100dvw - var(--dr-chat-width) - 320px)));
+    }
     body.dr-sidecar-open #sheld {
-        max-width: calc(100dvw - min(440px, 38dvw) - 36px);
-        right: calc(min(440px, 38dvw) + 24px);
-        left: 0;
+        width: var(--dr-chat-width);
+        max-width: var(--dr-chat-width);
+        left: var(--dr-chat-left);
+        right: auto;
+        margin-inline: 0;
     }
 }
 #directed-reply-workbench {
@@ -93,17 +113,21 @@
 }
 #directed-reply-workbench::backdrop { background: #0008; backdrop-filter: blur(4px); }
 #directed-reply-workbench #directed-reply-panel { max-height: 88dvh; padding: 26px; border: 0; }
-#directed-reply-workbench .dr-draft { display: flex; flex-direction: column; }
-#directed-reply-workbench #dr-preview { flex: 1; min-height: 330px; }
+#directed-reply-workbench #dr-preview { min-height: 300px; }
 #directed-reply-workbench .dr-brief > .dr-options { flex-direction: column; }
 /* Dock columns follow the actual chat width, which can differ from the viewport. */
 @container (max-width: 580px) {
-    #directed-reply-panel .dr-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
-    #directed-reply-panel #dr-preview { min-height: 180px; }
+    #directed-reply-panel .dr-workspace { display: flex; flex-direction: column; gap: 18px; }
+    #directed-reply-panel .dr-brief, #directed-reply-panel .dr-draft { display: block; }
+    #directed-reply-panel #dr-preview { height: auto; min-height: 180px; }
+    #directed-reply-sidecar .dr-draft { display: flex; }
+    #directed-reply-sidecar #dr-preview { min-height: 130px; }
 }
 @media (max-width: 740px) {
     #directed-reply-panel { padding: 14px; }
-    #directed-reply-panel .dr-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+    #directed-reply-panel .dr-workspace { display: flex; flex-direction: column; gap: 18px; }
+    #directed-reply-panel .dr-brief, #directed-reply-panel .dr-draft { display: block; }
+    #directed-reply-panel #dr-preview { height: auto; }
     #directed-reply-panel textarea { font-size: max(16px, 1em); }
     #directed-reply-workbench #directed-reply-panel { padding: 18px; }
     #directed-reply-workbench #dr-preview { min-height: 220px; }
